@@ -114,7 +114,10 @@ cd prompt-guard
 
 # 2. 配置
 cp .env.example .env
-# 编辑 .env，至少设置 DEEPSEEK_API_KEY 和 DASHBOARD_TOKEN
+# 编辑 .env，至少设置：
+#   PROMPT_GUARD_UPSTREAM_URL  → 你的 LLM API 地址（必填，否则请求无法转发）
+#   DEEPSEEK_API_KEY           → DeepSeek 审查用（不配则只用本地规则）
+#   DASHBOARD_TOKEN            → 面板访问令牌
 
 # 3. 启动
 docker compose up -d
