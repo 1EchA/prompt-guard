@@ -1,0 +1,47 @@
+services:
+  prompt-guard:
+    build:
+      context: .
+      dockerfile: prompt-guard.Dockerfile
+    image: prompt-guard:latest
+    container_name: prompt-guard
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - PROMPT_GUARD_MODE=${PROMPT_GUARD_MODE:-shadow}
+      - PROMPT_GUARD_HOST=0.0.0.0
+      - PROMPT_GUARD_PORT=8080
+      - PROMPT_GUARD_UPSTREAM_URL=http://upstream-api:3000
+      - PROMPT_GUARD_UPSTREAM_TIMEOUT=300
+      - PROMPT_GUARD_MAX_SCAN_CHARS=30000
+      - PROMPT_GUARD_LOG_MATCH=1
+      - PROMPT_GUARD_MATCH_PREVIEW_CHARS=96
+      # DeepSeek review
+      - PROMPT_GUARD_DEEPSEEK_SHADOW=1
+      - PROMPT_GUARD_DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      - PROMPT_GUARD_DEEPSEEK_TIMEOUT=4
+      - PROMPT_GUARD_DEEPSEEK_MIN_RISK=20
+      - PROMPT_GUARD_DEEPSEEK_SAMPLE_PERCENT=50
+      - PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_RISK=30
+      - PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_CONF=0.85
+      # Cost estimation
+      - PROMPT_GUARD_DS_PRICE_IN_PER_M=${DS_PRICE_IN_PER_M:-1}
+      - PROMPT_GUARD_DS_PRICE_CACHED_PER_M=${DS_PRICE_CACHED_PER_M:-0.02}
+      - PROMPT_GUARD_DS_PRICE_OUT_PER_M=${DS_PRICE_OUT_PER_M:-2}
+      # Dashboard
+      - PROMPT_GUARD_DASHBOARD_TOKEN=${DASHBOARD_TOKEN:-prompt_guard_admin}
+      - PROMPT_GUARD_RECENT_EVENTS_MAX=2000
+    volumes:
+      - ./prompt_guard_rules.json:/app/rules.json:ro
+      - ./ds_prompt.txt:/app/ds_prompt.txt:ro
+      - ./channel_scan_config.json:/app/channel_scan_config.json:rw
+      - audit_data:/app/audit
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  audit_data:

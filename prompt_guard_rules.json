@@ -1,0 +1,216 @@
+{
+  "rules": [
+    {
+      "id": "sexual_minor",
+      "category": "sexual_minor",
+      "severity": "critical",
+      "patterns": [
+        "\\b(?:loli|lolita|shota|underage)\\b.{0,80}\\b(?:sex|nude|porn(?:ography)?|erotic|explicit)\\b",
+        "\\b(?:child|minor|teen(?:ager)?)\\b.{0,40}\\b(?:sex|nude|porn(?:ography)?|erotic)\\b",
+        "(?:未成年|幼女|萝莉|正太|儿童|小学生).{0,40}(?:色情|裸|性爱|做爱|性交(?!付|互|易|接)|黄片|约炮)"
+      ]
+    },
+    {
+      "id": "sexual_explicit",
+      "category": "sexual_explicit",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:porn(?:ography)?|nsfw|nude|nudity|erotic|blowjob|handjob|anal sex|sexual intercourse)\\b",
+        "(?:色情|黄图|黄片|黄暴|裸照|露点(?!温度)|性爱|做爱|性交(?!付|互|易|接)|口交(?!货)|肛交|约炮)",
+        "(?:生成|制作|画|出|来一张).{0,20}(?:裸\\s*照|黄\\s*图|涩图|色情图)"
+      ]
+    },
+    {
+      "id": "graphic_violence",
+      "category": "graphic_violence",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:decapitat(?:e|ion)|dismember(?:ment)?|graphic violence)\\b",
+        "\\b(?:gore|torture)\\b.{0,40}\\b(?:scene|image|video|photo|illustration|detail|realistic|bloody|violence)\\b",
+        "\\b(?:create|write|generate|describe|draw|show|depict|make)\\b.{0,50}\\b(?:gore|torture|dismember(?:ment)?|decapitat(?:e|ion)|graphic violence)\\b",
+        "(?:血腥暴力|肢解|斩首|虐杀|折磨致死)",
+        "(?:生成|制作|描写|描述|绘制|展示|画).{0,30}(?:血腥|酷刑|虐杀|肢解|斩首|折磨致死)",
+        "(?:写|创作).{0,12}(?:详细|逼真|真实|大量|重口|露骨).{0,18}(?:血腥|酷刑|虐杀|肢解|斩首|折磨致死)"
+      ]
+    },
+    {
+      "id": "jailbreak_policy_bypass",
+      "category": "policy_bypass",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:ignore (?:all )?(?:previous|prior) instructions|bypass (?:safety|policy|guardrails))\\b",
+        "(?:破限|绕过(?:安全|审核|限制)|忽略(?:之前|以上|所有)指令|解除限制).{0,40}(?:提示词|prompt|规则|系统|模型|审查|限制)",
+        "(?:给我|帮我|生成|写|制作|构造|设计).{0,20}(?:越\\s*狱|jailbreak).{0,30}(?:提示词|prompt|绕过|破解|安全|审查|限制)"
+      ]
+    },
+    {
+      "id": "game_cheat",
+      "category": "game_cheat",
+      "severity": "medium",
+      "patterns": [
+        "\\b(?:aimbot|wallhack(?!.{0,40}(?:stop|fix|remove|disable|prevent|detect|patch|flicker))|esp\\s*hack|triggerbot|anti-cheat\\s*bypass)\\b",
+        "(?:绕过反作弊|封包挂)",
+        "(?:外挂|透视挂|自瞄|锁头).{0,20}(?:过检测|绕过反作弊)",
+        "(?:制作|开发|购买|出售|求)\\s*.{0,15}(?:外挂|透视挂|自瞄挂|锁头挂)",
+        "(?:开发|制作|购买|出售|写|生成|定制).{0,25}(?:外挂|透视挂|自瞄挂|作弊脚本|锁头挂|游戏辅助)",
+        "(?:外挂|透视挂|自瞄挂|作弊脚本|锁头挂|游戏辅助).{0,35}(?:源码|过检测|绕过反作弊|出售|购买|定制|开发)",
+        "(?:自瞄挂|透视挂|锁头挂|外挂).{0,35}(?:源码|过检测|绕过反作弊|出售|购买|定制|开发)"
+      ]
+    },
+    {
+      "id": "credential_theft",
+      "category": "credential_theft",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:phishing kit|credential harvester|session hijack)\\b",
+        "\\b(?:steal|harvest|exfiltrate|grab)\\b.{0,80}\\b(?:cookies?|tokens?|passwords?|credentials?|session(?:s|\\s+cookies?|\\s+tokens?)?)\\b",
+        "\\b(?:scrape)\\b(?!.{0,30}(?:setup|import|config)).{0,40}\\b(?:browser|session|account|login|admin|database|db|vault)\\b.{0,60}\\b(?:cookies?|tokens?|passwords?|credentials?|session(?:s|\\s+cookies?|\\s+tokens?)?)\\b",
+        "\\b(?:dump|export)\\b.{0,40}\\b(?:cookies?|tokens?|passwords?|credentials?)\\b.{0,40}\\b(?:from|out of|browser|session|database|db|vault)\\b",
+        "(?:撞库|拖库|会话劫持)",
+        "(?:盗取|窃取).{0,30}(?:密码|token|令牌|cookie|凭证|会话)",
+        "(?:导出).{0,30}(?:浏览器|会话|账号|后台|数据库|db|vault|本地保存).{0,40}(?:密码|token|令牌|cookie|凭证|会话)",
+        "(?:抓取|批量获取).{0,25}(?:浏览器|会话|账号|后台|数据库|db|保存|本地|批量|导出).{0,40}(?:密码|token|令牌|cookie|凭证|会话)",
+        "(?:抓取|批量获取).{0,25}(?:密码|token|令牌|cookie|凭证|会话).{0,40}(?:浏览器|会话|账号|后台|数据库|db|保存|本地|批量|导出)",
+        "(?:https?://\\S+).{0,80}(?:盗取|窃取|抓取|steal|harvest|exfiltrate).{0,40}(?:账号|密码|admin|token|cookie|credential|session)",
+        "(?:开发|制作|搭建|部署|写|生成).{0,30}(?:钓\\s*鱼\\s*网\\s*站|钓鱼工具|仿冒登录页|收\\s*集\\s*密\\s*码)",
+        "(?:钓\\s*鱼\\s*网\\s*站|钓鱼工具|仿冒登录页).{0,40}(?:收\\s*集\\s*密\\s*码|盗取|窃取|抓取|后台|源码)",
+        "(?:撞库|社工库).{0,30}(?:脚本|工具|批量|查询|生成|开发|购买|出售)",
+        "\\b(?:cookies?|tokens?|passwords?|credentials?)\\b.{0,40}\\b(?:dump|exfiltrate|steal|harvest)\\b"
+      ]
+    },
+    {
+      "id": "malware",
+      "category": "malware",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:keylogger|persistence\\s*payload)\\b",
+        "(?:反弹shell|持久化后门|勒索病毒|键盘记录器|远控木马)",
+        "\\b(?:create|write|build|develop|deploy|spread|distribute|generate|code|implement|make)\\b.{0,80}\\b(?:malware|ransomware|trojan|botnet|worm|rootkit|spyware|stealer|reverse_shell)\\b",
+        "(?:编写|制作|开发|生成|植入|种植).{0,30}(?:木马|僵尸网络|蠕虫|勒索病毒|远控|后门程序|恶意软件)",
+        "(?:传播).{0,30}(?:木马|僵尸网络|蠕虫|勒索病毒|远控|后门程序|恶意软件).{0,30}(?:脚本|工具|软件|源码|样本|payload)",
+        "(?:木马|僵尸网络|蠕虫|勒索病毒|远控|后门程序|恶意软件).{0,30}(?:传播脚本|传播工具|传播源码|传播payload)",
+        "\\b(?:evade|bypass|obfuscate|disable|hide\\s*from).{0,40}\\b(?:antivirus|AV|defender|EDR|detection|windows\\s*defender)\\b.{0,80}\\b(?:malware|ransomware|trojan|botnet|worm|rootkit|spyware|stealer|payload)\\b",
+        "(?:免杀|绕过杀软|加壳|混淆免杀).{0,20}(?:木马|病毒|后门|恶意|payload)",
+        "(?:木马|病毒|后门|恶意|payload).{0,20}(?:过检测|免杀|绕过杀软)"
+      ]
+    },
+    {
+      "id": "financial_fraud",
+      "category": "financial_fraud",
+      "severity": "high",
+      "patterns": [
+        "(?:改|修改|改成|修改成|伪造|刷|破解).{0,20}(?:钱包余额|账户余额|钱包金额|USDT|ETH|BTC).{0,20}\\d{3,}",
+        "(?:设置|设置为).{0,20}(?:钱包余额|账户余额|USDT|ETH|BTC).{0,20}\\d{3,}",
+        "(?:钱包余额|账户余额|钱包金额|USDT|ETH|BTC).{0,20}(?:改|修改|改成|修改成|伪造|刷|破解).{0,20}\\d{3,}",
+        "(?:钱包余额|账户余额|USDT|ETH|BTC).{0,20}(?:设置|设置为).{0,20}\\d{3,}",
+        "(?:hack|crack|fak(?:e|ing)|spoof|modif(?:y|ing)).{0,20}(?:balance|wallet|amount).{0,20}\\d{3,}"
+      ]
+    },
+    {
+      "id": "gambling_illegal",
+      "category": "gambling_illegal",
+      "severity": "high",
+      "patterns": [
+        "(?:博彩|赌博|赌场|娱乐城|投注平台|体育投注|赌球|盘口|私彩|现金网).{0,40}(?:搭建|开发|引流|推广|下注机器人|套利脚本|刷流水|充值接口|收款接口|源码)",
+        "(?:搭建|开发|推广|引流|运营).{0,30}(?:博彩|赌博|赌场|投注平台|赌球|盘口|彩票|百家乐|德州扑克)",
+        "(?:下注机器人|博彩机器人|彩票套利|盘口套利|私彩源码|娱乐城源码|现金网源码)",
+        "\\b(?:casino|sportsbook|betting|bookmaker)\\b.{0,50}\\b(?:bot|automation|script|affiliate|traffic|deposit|withdraw|odds\\s*scraper|arbitrage)\\b",
+        "(?:搭建|开发|制作|做|运营|推广|引流|上线|部署|接入).{0,30}(?:线上\\s*投注平台|投注平台|赔率\\s*盘|盘口\\s*系统|现金网|博彩平台|赌博网站|自动\\s*下注)",
+        "(?:线上\\s*投注平台|投注平台|赔率\\s*盘|盘口\\s*系统|现金网|博彩平台|赌博网站).{0,40}(?:搭建|开发|制作|源码|收款|充值|自动\\s*下注|机器人|运营|引流)"
+      ]
+    },
+    {
+      "id": "ddos_abuse",
+      "category": "ddos_abuse",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:booter|stresser)\\b.{0,50}\\b(?:buy|rent|attack|launch|target|panel|service)\\b",
+        "\\b(?:launch|run|perform|start|send)\\b.{0,40}\\b(?:ddos|udp\\s*flood|syn\\s*flood|http\\s*flood|slowloris|amplification\\s*attack)\\b",
+        "(?:打站|打流量|打死网站|CC攻击|洪泛攻击|流量攻击|肉鸡打站|放大攻击)",
+        "(?:开发|搭建|购买|出售|使用|发起).{0,30}(?:ddos|booter|stresser|CC攻击|打站|打流量|洪泛攻击)",
+        "(?:发起|执行|开发|制作|写|生成|部署).{0,25}(?:C\\s*C\\s*攻\\s*击|DDoS|洪水攻击|打\\s*死\\s*网\\s*站|压测攻击)",
+        "(?:C\\s*C\\s*攻\\s*击|DDoS|洪水攻击).{0,40}(?:脚本|工具|打死|打挂|流量|攻击)"
+      ]
+    },
+    {
+      "id": "game_cheat_cn",
+      "category": "game_cheat",
+      "severity": "high",
+      "patterns": [
+        "(?:外挂|游戏辅助|透视挂|自瞄挂|锁头挂|无后坐|自动压枪|锁血|飞天遁地|雷达挂|DMA\\s*cheat|封包挂|内存修改|CE修改器).{0,40}(?:制作|开发|购买|出售|源码|注入|过检测|绕过反作弊|卡密|发卡|官网|教程)",
+        "(?:制作|开发|购买|出售|求|搭建).{0,30}(?:外挂|透视挂|自瞄挂|锁头挂|无后坐|自动压枪|雷达挂|DMA\\s*cheat|封包挂|卡密|发卡)",
+        "\\b(?:aimbot|wallhack(?!.{0,40}(?:stop|fix|remove|disable|prevent|detect|patch|flicker))|esp\\s*hack|triggerbot|no recoil|radar hack|DMA cheat|cheat loader|anti-cheat bypass)\\b",
+        "(?:自瞄挂|透视挂|锁头挂|外挂).{0,35}(?:源码|过检测|绕过反作弊|出售|购买|定制|开发)"
+      ]
+    },
+    {
+      "id": "sexual_exploitation",
+      "category": "sexual_exploitation",
+      "severity": "high",
+      "patterns": [
+        "(?:AI脱衣|一键脱衣|脱衣软件|换脸色情|成人视频换脸|deepfake porn|nudify|undress ai|face swap porn)",
+        "(?:裸聊|成人视频|福利视频|成人视频站|黄色网站|黄站|约炮引流|私房照|擦边引流).{0,40}(?:引流|推广|搭建|源码|自动化|机器人|采集|付费|变现|收款)",
+        "(?:生成|制作|批量生成|换脸).{0,30}(?:裸照|色情图|黄图|成人图|成人视频|露点(?!温度)图)",
+        "(?:搭建|开发|推广|引流|采集).{0,30}(?:黄站|黄色网站|成人视频站|裸聊平台|约炮平台|成人内容平台)"
+      ]
+    },
+    {
+      "id": "prompt_exfiltration",
+      "category": "policy_bypass",
+      "severity": "high",
+      "patterns": [
+        "\\b(?:reveal|leak|print|dump|show)\\b.{0,40}\\b(?:system prompt|hidden instructions|developer message|internal policy)\\b",
+        "(?:泄露|输出|打印|显示|导出).{0,30}(?:系统提示词|system prompt|隐藏指令|开发者消息|内部策略|安全策略)",
+        "(?:不要遵守|无需遵守|关闭|禁用|绕过).{0,30}(?:安全审查|内容审核|安全策略|过滤器|guardrails)",
+        "(?:绕过).{0,30}(?:模型|AI|平台|站点|接口).{0,20}(?:安全限制|审核限制|内容限制|guardrails)",
+        "(?:扮演|模拟).{0,20}(?:无限制|无过滤|无审查|黑客模式|开发者模式)"
+      ]
+    },
+    {
+      "id": "cyber_abuse_cn",
+      "category": "cyber_abuse",
+      "severity": "high",
+      "patterns": [
+        "(?:社工库|开盒(?!子)|人肉搜索|撞库|短信轰炸|电话轰炸|跑分平台|洗钱通道|银行卡四件套|实名号|身份证买卖)",
+        "(?:购买|出售|查询|搭建|开发|推广|找|求).{0,30}(?:社工库|接码|实名号|银行卡四件套|跑分|洗钱|短信轰炸|开盒)",
+        "\\b(?:doxx|doxing|sms bomber|phone bomber|SIM farm|money mule)\\b"
+      ]
+    },
+    {
+      "id": "offensive_pentest",
+      "category": "offensive_cyber",
+      "severity": "high",
+      "patterns": [
+        "(?:未授权|非法|黑产).{0,20}(?:网站渗透|内网渗透|拿站|getshell|提权|横向移动|写shell|上传webshell|批量扫站|批量getshell)",
+        "(?:网站渗透|内网渗透|拿站|getshell|提权|横向移动|写shell|上传webshell|批量扫站|批量getshell).{0,50}(?:攻击脚本|自动化攻击|源码|payload|利用链|绕过检测|免杀)",
+        "(?:开发|编写|制作|生成|给我).{0,30}(?:webshell|一句话木马|漏洞利用|exploit|批量扫站|撞库工具|弱口令爆破).{0,40}(?:工具|脚本|源码|平台|自动化)?",
+        "\\b(?:write|build|create|develop)\\b.{0,40}\\b(?:webshell|reverse shell|exploit payload|privilege escalation exploit|post-exploitation tool|auto exploit)\\b",
+        "\\b(?:mass scan|mass exploit|auto exploit|weaponize)\\b.{0,60}\\b(?:website|server|target|vulnerability|CVE)\\b",
+        "(?:开发|制作|生成|搭建).{0,30}(?:钓鱼软件|诈骗工具)"
+      ]
+    },
+    {
+      "id": "phishing_tooling",
+      "category": "phishing_tooling",
+      "severity": "high",
+      "patterns": [
+        "(?:钓鱼软件|钓鱼网站|钓鱼页面|仿站|高仿登录|盗号页面|短信钓鱼|邮箱钓鱼).{0,50}(?:开发|制作|搭建|生成|源码|后台|收信|收码|免杀|绕过风控|引流|收集|采集)",
+        "(?:开发|制作|搭建|生成).{0,30}(?:钓鱼|仿站|盗号|收码|收信).{0,30}(?:工具|软件|网站|页面|后台|源码)",
+        "(?:钓鱼软件|钓鱼网站|盗号页面|高仿登录).{0,40}(?:账号|密码|验证码|token|cookie|凭证)",
+        "\\b(?:phishing kit|credential harvester|fake login|clone login|evilginx)\\b.{0,50}\\b(?:build|create|setup|deploy|bypass|2fa|collect|harvest)\\b",
+        "(?:开发|制作|生成|搭建).{0,30}(?:钓鱼工具|仿冒登录页)"
+      ]
+    },
+    {
+      "id": "fraud_tooling",
+      "category": "fraud_tooling",
+      "severity": "high",
+      "patterns": [
+        "(?:诈骗工具|诈骗软件|杀猪盘|虚假投资盘|虚假交易所|跑分平台|洗钱平台|返利诈骗|刷单诈骗).{0,50}(?:开发|制作|搭建|源码|后台|机器人|话术|引流|收款)",
+        "(?:开发|制作|搭建|生成).{0,30}(?:诈骗|杀猪盘|跑分|洗钱|虚假投资|虚假交易所|刷单返利).{0,30}(?:工具|软件|平台|后台|源码|机器人)",
+        "\\b(?:scam bot|fraud platform|fake exchange|pig butchering|money mule panel)\\b.{0,50}\\b(?:build|create|deploy|script|automation|backend|panel)\\b",
+        "(?:刷单|洗钱|跑分).{0,30}(?:平台|系统|脚本|工具|教程|通道|收款)"
+      ]
+    }
+  ]
+}

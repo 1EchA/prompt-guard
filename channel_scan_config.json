@@ -1,0 +1,7 @@
+{
+  "default": {
+    "default_mode": "shadow",
+    "scan_token_groups": [],
+    "scan_account_ids": []
+  }
+}
