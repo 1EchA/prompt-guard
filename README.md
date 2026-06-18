@@ -1,182 +1,160 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/status-stable-success" alt="stable">
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="license">
-  <img src="https://img.shields.io/badge/python-3.11+-blue" alt="python">
-  <img src="https://img.shields.io/badge/docker-ready-blue" alt="docker">
-</p>
+<div align="center">
 
-<h1 align="center">🛡️ Prompt-Guard</h1>
-<p align="center"><i>轻量级 AI 内容安全网关 — 实时检测并拦截 LLM 违规请求</i></p>
+# 🛡️ Prompt-Guard
 
-<p align="center">
-  防止您的 LLM API 被滥用于生成色情、赌博、恶意软件、钓鱼网站、游戏外挂等违法内容。
-  同时提供完善的审计和误判排查机制，避免干扰正常用户。
-</p>
+### Lightweight AI Content Safety Guard for LLM API Gateways
 
----
+Real-time prompt inspection · Two-layer review · Zero-downtime hot-reload
 
-## 📖 目录
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Stars](https://img.shields.io/github/stars/1EchA/prompt-guard?style=social)](https://github.com/1EchA/prompt-guard)
+[![Issues](https://img.shields.io/github/issues/1EchA/prompt-guard?style=social)](https://github.com/1EchA/prompt-guard/issues)
 
-- [审查体系](#-审查体系)
-- [快速开始](#-快速开始)
-- [架构](#-架构)
-- [配置详解](#-配置详解)
-- [审查模式](#-审查模式)
-- [渠道/账号控制](#-渠道账号控制)
-- [Dashboard](#-dashboard)
-- [热加载](#-热加载)
-- [审计日志](#-审计日志)
-- [规则分类](#-规则分类)
-- [FAQ](#-faq)
+</div>
 
 ---
 
-## 🧠 审查体系
+> Stop your LLM API from being abused to generate porn, gambling, malware, phishing kits, game cheats, and other harmful content — **without** blocking legitimate users.
 
-Prompt-Guard 采用两层审查架构，兼顾**速度**和**准确率**：
+---
+
+## ✨ Why Prompt-Guard?
+
+| | Pure Keyword Filter | Pure LLM Guard | **Prompt-Guard** |
+|---|:---:|:---:|:---:|
+| **Latency** | ⚡ 0ms | 🐢 1-4s per request | ⚡ 0ms (rules) + 1-2s (DS, sampled) |
+| **Accuracy** | ❌ Easy to bypass | ✅ High | ✅ **High** (two layers) |
+| **Cost** | Free | 💰 Expensive (every request) | 💰 **Low** (sample only high-risk) |
+| **False positives** | High | Medium | **Low** (context-aware + Scunthorpe protection) |
+| **Deployment** | Simple | Complex | **One `docker compose up`** |
+| **Hot-reload** | Rare | Rare | ✅ Rules + Prompt, no restart |
+
+---
+
+## 🧠 Two-Layer Review Architecture
 
 ```mermaid
 graph TD
-    A[请求进入审查] --> B{第一层：本地正则规则<br/>17类 · 0ms}
-    B -->|命中违规| C[🚫 直接拦截 403]
-    B -->|未命中| D{风险评分 ≥ 30?}
-    D -->|是| E[第二层：DeepSeek 语义审查<br/>1-2s]
-    E -->|block & conf ≥ 0.85| C
-    E -->|allow / 超时| F[✅ 放行]
-    D -->|否| F
-    C -.-> G[审计日志 + Dashboard]
-    F -.-> G
-    F --> H[透传到上游 LLM API]
+    A[📥 Request] --> B{"🔍 Layer 1: Local Regex<br/>17 rules · <1ms"}
+    B -->|Match| C["🚫 BLOCK 403"]
+    B -->|No match| D{"📊 Risk Score ≥ 30?"}
+
+    D -->|Yes| E["🤖 Layer 2: DeepSeek Review<br/>1-2s · cached"]
+    E -->|"block & conf ≥ 0.85"| C
+    E -->|"allow / timeout"| F["✅ PASS"]
+    D -->|No| F
+
+    C -.->|"audit log"| G[📊 Dashboard]
+    F -.->|"audit log"| G
+    F --> H["📤 → Upstream LLM API"]
+
+    classDef block fill:#ff4444,stroke:#cc0000,color:#fff,font-weight:bold
+    classDef pass fill:#22c55e,stroke:#16a34a,color:#fff,font-weight:bold
+    classDef review fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef neutral fill:#f3f4f6,stroke:#d1d5db,color:#374151
+
+    class C block
+    class F pass
+    class E review
+    class A,B,D,G,H neutral
 ```
 
-### 第一层：本地正则规则（0ms）
+<details>
+<summary>📖 How does each layer work?</summary>
 
-17 类规则的 regex 扫描，平均耗时 < 0.1ms。
+**Layer 1 — Local Regex (0ms):** 17 rule categories with 200+ patterns. Covers sexual content, gambling, malware, jailbreak, credential theft, game cheats, financial fraud, and more. Includes:
+- **Scunthorpe protection**: `口交(?!货)` — won't false-flag "出口交货值" (export value)
+- **Safety context exemption**: `reverse shell` in a security lab tutorial → allowed
+- **Bypass detection**: variant phrases like "情趣试穿" (NSFW) or "键鼠驱动" (MMO bot) → boosted risk score
 
-**为什么还需要第二层？** 本地规则是关键词匹配，攻击者只要变换话术就能绕过：
+**Layer 2 — DeepSeek (1-2s, sampled):** Catches what regex misses. Only triggered for:
+- Requests with risk score ≥ 30 (sync review, may block)
+- Sampled low-risk requests (async, audit-only)
+- Results cached (allow=12h, block=7d) — repeat content = 0ms 0 cost
 
-```json
-// 用户写的不是"外挂"，而是"键鼠驱动/图色识别/DD驱动"
-// 本地规则 miss，但 bypass 检测抓到 → 推给 DS → DS 判 block
-{
-  "bypass_patterns": [
-    {"pattern": "情趣.{0,60}试穿/自拍/胸罩", "score": "+25"},
-    {"pattern": "自动登录.{0,40}账号密码",  "score": "+20"},
-    {"pattern": "键鼠驱动|图色识别|DD驱动",   "score": "+20"}
-  ]
-}
-```
-
-**误判防御机制：**
-
-| 机制 | 做法 | 效果 |
-|---|---|---|
-| Scunthorpe 防护 | `口交(?!货)`、`性交(?!付\｜互\｜易\｜接)`、`露点(?!温度)` | 气象/经济/代码语境不误拦 |
-| 安全语境豁免 | 匹配附近 ±80 字符含靶场/新闻/UI/拒绝/禁止等词 → 放行 | 安全学习/新闻报道不误拦 |
-| 连续热修 | `骗 → wallet`、`scrape → setup`、`wallhack → flicker` | 发现即修复，不断流 |
-
-### 第二层：DeepSeek 语义审查（采样）
-
-本地规则放行的请求，经过风险评分模型，决定是否送 DS 审查：
-
-**风险评分加分项：**
-
-| 信号 | 加分 |
-|---|---|
-| 命中本地规则 | risk = 100（直接 block） |
-| 含绕过检测关键词（情趣试穿/MMO自动化等） | +20~25 |
-| 大量 shell / base64 / URL 等敏感结构 | +10~20 |
-| 超长文本 (>12KB) | +10 |
-| 新 token 24h 内 | +10 |
-| 同用户 1h 内被 block 过 | +30 |
-
-**评分后决策：**
-
-| 风险分 | 行为 |
-|---|---|
-| ≥ 30 | 同步等 DS 裁决 → DS block & conf≥0.85 则拦截，否则放行 |
-| < 30 | 放行 + 异步采样 DS（仅审计） |
-
-**DS 缓存：** 同文本内容后次请求直接复用上次结果（allow=12h, block=7d, error=5min），缓存命中时 0ms 0 token。
+</details>
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
 ```bash
-# 1. 克隆
+# 1️⃣ Clone
 git clone https://github.com/1EchA/prompt-guard.git
 cd prompt-guard
 
-# 2. 配置
+# 2️⃣ Configure (edit .env — 3 required fields)
 cp .env.example .env
-# 编辑 .env，至少设置：
-#   PROMPT_GUARD_UPSTREAM_URL  → 你的 LLM API 地址（必填，否则请求无法转发）
-#   DEEPSEEK_API_KEY           → DeepSeek 审查用（不配则只用本地规则）
-#   DASHBOARD_TOKEN            → 面板访问令牌
 
-# 3. 启动
+# 3️⃣ Launch
 docker compose up -d
 
-# 4. 查看面板
-# 浏览器打开 http://localhost:8080/__prompt_guard/dashboard
-# 输入你设置的 DASHBOARD_TOKEN
-
-# 5. 验证
-curl http://localhost:8080/health
-# → {"status":"ok","service":"prompt-guard","mode":"shadow","rules":17}
+# 4️⃣ Open dashboard
+#   → http://localhost:8080/__prompt_guard/dashboard
 ```
+
+<details>
+<summary>⚙️ What to fill in .env</summary>
+
+| Variable | Required | Description |
+|---|:---:|---|
+| `PROMPT_GUARD_UPSTREAM_URL` | ✅ | Your LLM API address (e.g. `http://your-api:3000`) |
+| `DEEPSEEK_API_KEY` | ✅ | DeepSeek key for Layer 2 ([get one](https://platform.deepseek.com)) |
+| `DASHBOARD_TOKEN` | ✅ | Password for the web dashboard |
+| `PROMPT_GUARD_MODE` | | `shadow` (default, observe only) or `block` |
+
+</details>
 
 ---
 
-## 🏗️ 架构
+## 🏗️ Deployment Architecture
 
 ```mermaid
 graph LR
-    U[👤 用户] -->|HTTPS| N[Nginx / Caddy]
-    N -->|:8080| PG[🛡️ Prompt-Guard]
-    PG -->|Local Rules<br/>0ms| B1{拦截?}
-    PG -->|DeepSeek<br/>1-2s 采样| B2{拦截?}
-    B1 -->|block| R[🚫 403]
-    B2 -->|block| R
-    B1 -->|pass| UP[上游 LLM API]
-    B2 -->|pass| UP
-    PG -.-> D[📊 Dashboard]
+    U["👤 Users"] -->|HTTPS| N["🌐 Nginx / Caddy"]
+    N -->|:8080| PG["🛡️ Prompt-Guard"]
+    PG -->|"rules + DS review"| UP["🤖 Upstream LLM<br/>(OpenAI / Claude / new-api)"]
+    PG -.->|"stats + events"| DASH["📊 Dashboard"]
+
+    classDef guard fill:#3b82f6,stroke:#2563eb,color:#fff,font-weight:bold
+    classDef upstream fill:#8b5cf6,stroke:#7c3aed,color:#fff
+    class PG guard
+    class UP upstream
 ```
 
-### 接入反向代理
-
-Prompt-Guard 监听 `:8080`，需要放在 Nginx/Caddy 后面，由反代把 LLM 请求转发给它，它再转发到上游 API。
-
-**Nginx 示例**（把生成类端点走 prompt-guard，其他直接到上游）：
+<details>
+<summary>🔧 Nginx reverse proxy example</summary>
 
 ```nginx
 upstream prompt_guard { server 127.0.0.1:8080; }
-upstream llm_upstream { server 127.0.0.1:3000; }  # 你的 LLM API
+upstream llm_upstream { server 127.0.0.1:3000; }
 
 server {
     listen 443 ssl;
     server_name api.example.com;
 
-    # 受审查的生成端点 → prompt-guard
-    location ~ ^/(v1/chat/completions|chat/completions|v1/responses|responses|v1/messages|messages|v1/images/generations|images/generations)/?$ {
+    # Generation endpoints → Prompt-Guard
+    location ~ ^/(v1/chat/completions|v1/responses|v1/messages|v1/images/generations)/?$ {
         proxy_pass http://prompt_guard;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
         proxy_buffering off;
         proxy_read_timeout 300s;
     }
 
-    # 其他请求 → 上游 API
+    # Everything else → upstream API directly
     location / {
         proxy_pass http://llm_upstream;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 ```
 
-**Caddy 示例**（更简洁）：
+</details>
+
+<details>
+<summary>🔧 Caddy reverse proxy example</summary>
 
 ```caddy
 api.example.com {
@@ -190,211 +168,215 @@ api.example.com {
 }
 ```
 
----
-
-## ⚙️ 配置详解
-
-### 运行模式
-
-| 模式 | 行为 | 建议 |
-|---|---|---|
-| `shadow` | 扫描但不拦截，记录到审计日志和 Dashboard | **首次部署建议** |
-| `block` | 扫描并拦截违规请求（HTTP 403） | 生产环境 |
-| `off` | 透传不扫描，不记录 | 维护/调试 |
-
-> 💡 首次使用建议先 shadow 24-48 小时，通过 Dashboard 确认拦截逻辑无误后再切 block。
-
-### 环境变量
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `PROMPT_GUARD_MODE` | `shadow` | 运行模式 |
-| `PROMPT_GUARD_UPSTREAM_URL` | `http://upstream-api:3000` | 上游 LLM API 地址 |
-| `PROMPT_GUARD_MAX_SCAN_CHARS` | `30000` | 每次扫描的文本上限 |
-| `DEEPSEEK_API_KEY` | — | DeepSeek API 密钥（[申请](https://platform.deepseek.com)） |
-| `DEEPSEEK_MODEL` | `deepseek-v4-flash` | 审查模型 |
-| `DASHBOARD_TOKEN` | `change_me` | Dashboard 访问令牌 |
-
-### DS 审查调优
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `PROMPT_GUARD_DEEPSEEK_MIN_RISK` | `20` | 异步 DS 采样的最低风险分 |
-| `PROMPT_GUARD_DEEPSEEK_SAMPLE_PERCENT` | `50` | 异步采样率（%） |
-| `PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_RISK` | `30` | 同步 DS 裁决的风险分阈值 |
-| `PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_CONF` | `0.85` | DS 阻断的最低置信度 |
-
-成本估算（以 `deepseek-v4-flash` 为例）：
-
-| 调用量/天 | 输入 Token | 输出 Token | 估算成本 |
-|---|---|---|---|
-| 1,000 | ~1M | ~120K | ~1.2 元 |
-| 10,000 | ~10M | ~1.2M | ~12 元 |
-| 100,000 | ~100M | ~12M | ~120 元 |
-
-> Dashboard 内置成本面板，可实时查看实际花费。
+</details>
 
 ---
 
-## 📊 审查模式详解
+## 📊 Dashboard
 
-### shadow 与 block 的区别
+Access at `http://localhost:8080/__prompt_guard/dashboard`
 
-两者都会**扫描 + 审查 + 记录**，唯一区别是是否拦截：
-
-| | shadow | block |
-|---|---|---|
-| 扫描规则 | ✅ | ✅ |
-| DS 审查 | ✅ | ✅ |
-| 审计记录 | ✅ | ✅ |
-| **拦截违规** | ❌ 不拦截 | ✅ 违规 403 |
-| 适用场景 | 初次部署观察 | 生产环境 |
-
-### 模式切换
-
-修改 `.env` 中的 `PROMPT_GUARD_MODE`，然后重建容器：
-
-```bash
-# 编辑 .env：PROMPT_GUARD_MODE=block
-docker compose up -d prompt-guard
-```
-
-> 无需修改代码，仅改环境变量即可平滑切换。
+| Feature | Description |
+|---|---|
+| 🔴 **Live blocks** | Real-time blocked requests (block events shown first) |
+| 💰 **DS cost tracker** | Token usage + estimated cost per site |
+| ⚙️ **Channel config** | Adjust scan scope without restart |
+| 🔍 **Event search** | Filter by category, site, time |
 
 ---
 
-## 🎯 渠道/账号控制
+## ⚙️ Configuration
 
-多租户场景下，可以精确配置只扫描特定渠道或账号的请求：
+### Guard Modes
+
+| Mode | Scan | Block | Best for |
+|---|:---:|:---:|---|
+| `shadow` | ✅ | ❌ | 🆕 **First deployment** — observe without risk |
+| `block` | ✅ | ✅ | 🏭 **Production** — active enforcement |
+| `off` | ❌ | ❌ | 🔧 Maintenance / debugging |
+
+> 💡 **Recommended**: Start with `shadow` for 24-48h → review dashboard → switch to `block`
+
+### DS Sampling Tuning
+
+| Variable | Default | Description |
+|---|---|---|
+| `PROMPT_GUARD_DEEPSEEK_MIN_RISK` | `20` | Min risk score for async DS sampling |
+| `PROMPT_GUARD_DEEPSEEK_SAMPLE_PERCENT` | `50` | Sampling rate for eligible requests |
+| `PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_RISK` | `30` | Risk threshold for **synchronous** DS review |
+| `PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_CONF` | `0.85` | Min DS confidence to actually block |
+
+<details>
+<summary>💰 Cost estimation (deepseek-v4-flash)</summary>
+
+| Daily calls | Input tokens | Output tokens | Est. cost |
+|---:|---:|---:|---:|
+| 1,000 | ~1M | ~120K | ~¥1.2 |
+| 10,000 | ~10M | ~1.2M | ~¥12 |
+| 100,000 | ~100M | ~12M | ~¥120 |
+
+> Dashboard shows real-time cost. Cache hits are free (0ms, 0 tokens).
+
+</details>
+
+---
+
+## 🎯 Channel / Account Control
+
+For multi-tenant setups, restrict scanning to specific channels or token groups:
 
 ```json
 {
-  "my_site": {
+  "default": {
     "default_mode": "off",
     "scan_channel_ids": [1, 2, 3],
-    "scan_token_groups": ["vip-users", "sale-users"],
-    "scan_account_ids": [],
+    "scan_token_groups": ["vip-users"]
+  }
+}
+```
+
+Edit `channel_scan_config.json` — changes take effect via dashboard **save** (hot-reload).
+
+<details>
+<summary>📖 Full config with DB resolution (optional)</summary>
+
+Without DB, prompt-guard runs fine — you just won't see user/group info in audit events.
+With DB, token-to-user resolution enriches audit logs:
+
+```json
+{
+  "default": {
+    "default_mode": "off",
+    "scan_channel_ids": [1, 2, 3],
     "db_type": "mysql",
     "db_host": "mysql",
     "db_port": 3306,
     "db_user": "root",
     "db_pass": "your_db_password",
     "db_name": "my_api",
-    "token_query": "SELECT DISTINCT c.id FROM channels c, users u, tokens t WHERE t.key = %s AND t.user_id = u.id AND (FIND_IN_SET(u.group, c.group) > 0 OR c.group = '') AND c.status = 1",
-    "group_query": "SELECT COALESCE(NULLIF(t.group, ''), u.group) FROM tokens t JOIN users u ON t.user_id = u.id WHERE t.key = %s",
-    "user_query": "SELECT u.id, COALESCE(u.username, u.email, ''), COALESCE(NULLIF(t.group, ''), u.group) FROM users u JOIN tokens t ON t.user_id = u.id WHERE t.key = %s"
+    "token_query": "SELECT DISTINCT c.id FROM channels c, users u, tokens t WHERE t.key = %s AND ...",
+    "group_query": "SELECT ... FROM tokens t JOIN users u ON ...",
+    "user_query": "SELECT u.id, ... FROM users u JOIN tokens t ON ..."
   }
 }
 ```
 
-> 不配置 DB 也能正常运行，只是用户分组等信息不会显示。
+</details>
 
 ---
 
-## 📊 Dashboard
+## 🔥 Hot-Reload (Zero Downtime)
 
-| 功能 | 说明 |
-|---|---|
-| 实时拦截面板 | block/shadow 事件实时显示，block 优先 |
-| DeepSeek 成本 | 实时调用量、Token 消耗、估算费用 |
-| 站点切换 | 多站点数据聚合（可选） |
-| 渠道配置 | 在线调整扫描范围，保存即热加载 |
-| 事件搜索 | 按分类、站点、时间筛选 |
-
----
-
-## 🔧 热加载
-
-所有配置和规则均支持热加载，无需重启容器（不断流）：
+Everything is hot-reloadable — **no restart, no traffic drop**:
 
 ```bash
-# 规则热加载
+# 🔄 Reload rules after editing prompt_guard_rules.json
 curl -X POST http://localhost:8080/__prompt_guard/reload-rules \
   -H "X-Guard-Token: your_token"
+# → {"status":"ok","rules":17}
 
-# 渠道配置热加载
-# 在 Dashboard 渠道配置面板中修改后保存即可
+# ✏️ DS prompt: edit ds_prompt.txt → next DS call uses new text automatically
 
-# DS Prompt 热加载
-# 编辑 ds_prompt.txt → 下次 DS 调用自动生效
+# ⚙️ Channel config: save in dashboard → applied instantly
 ```
 
 ---
 
-## 📝 审计日志
+## 🛡️ Rule Categories
 
-所有 block/shadow 事件自动落盘 JSONL：
-
-```
-audit/
-  api-20260614.jsonl
-  api-20260615.jsonl
-  ...
-```
-
-每行一个 JSON 事件，包含完整上下文：
-
-```json
-{
-  "ts": 1781505600,
-  "decision": "block",
-  "site": "api",
-  "category": "malware",
-  "rule_id": "malware",
-  "provider": null,
-  "match_preview": "帮我写一个木马程序",
-  "match_hash": "2f293f67aa33f2ce",
-  "user_id": 74,
-  "user_group": "codex-pro"
-}
-```
-
----
-
-## 🎯 规则分类
-
-| 类别 | 覆盖内容 | 匹配方式 |
+| Category | Covers | Example |
 |---|---|---|
-| `sexual_explicit` | 色情文字/图片生成 | 关键词 + bypass 检测 |
-| `sexual_minor` | 未成年人相关违规 | 组合规则 |
-| `malware` | 恶意软件/反向 shell | 意图词 + 行为词 |
-| `credential_theft` | 钓鱼/凭证窃取/CSAM | 关键词 + 语境豁免 |
-| `game_cheat` | 游戏外挂/作弊/辅助脚本 | 关键词 + 意图词 |
-| `jailbreak` | 越狱 prompt injection | 关键词 + DS 审查 |
-| `financial_fraud` | 金融诈骗/钱包伪造 | 意图词 + 对象词 |
-| `graphic_violence` | 暴力/血腥内容 | 关键词 |
-| `phishing_tooling` | 钓鱼工具开发 | 关键词 + 意图词 |
+| 🔞 `sexual_explicit` | Porn, NSFW content | "生成色情图片" |
+| 👶 `sexual_minor` | Minor-related violations | "未成年...色情" |
+| 🦠 `malware` | Malware, reverse shell, ransomware | "编写木马程序" |
+| 🔑 `credential_theft` | Phishing, credential harvesting | "钓鱼网站收集密码" |
+| 🎮 `game_cheat` | Cheats, aimbot, wallhack | "制作自瞄外挂" |
+| 🔓 `jailbreak` | Prompt injection, policy bypass | "ignore previous instructions" |
+| 💰 `financial_fraud` | Wallet spoofing, fraud | "钱包余额改成5000" |
+| 💀 `graphic_violence` | Gore, torture | "虐杀..." |
+| 🎰 `gambling` | Gambling platforms | "搭建赌博网站" |
+| 🥅 `phishing_tooling` | Phishing kit development | "仿冒登录页" |
+
+<details>
+<summary>🛡️ Anti-false-positive mechanisms</summary>
+
+| Mechanism | How it works |
+|---|---|
+| **Scunthorpe protection** | `口交(?!货)` — "出口交货值" (export data) not flagged |
+| **Safety context exemption** | `reverse shell` near "靶场/实验/Vulhub" → allowed |
+| **Bypass detection** | Variant phrases → risk score boost → DS review (not instant block) |
+| **Confidence threshold** | DS block with conf < 0.85 → downgraded to pass |
+
+</details>
 
 ---
 
 ## ❓ FAQ
 
-**Q: 部署后请求全部 503 回怎么办？**
+<details>
+<summary><b>All requests return 502/503?</b></summary>
 
-A: 检查 `PROMPT_GUARD_UPSTREAM_URL` 是否正确指向您的 LLM API 地址。
+Check `PROMPT_GUARD_UPSTREAM_URL` in `.env` — it must point to your LLM API.
+</details>
 
-**Q: 如何调整拦截灵敏度？**
+<details>
+<summary><b>Is DeepSeek required?</b></summary>
 
-A: 调整 `PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_RISK`（默认 30），降低则更多请求进入 DS 审查，提高则减少。
+No. Without `DEEPSEEK_API_KEY`, only Layer 1 (regex rules) is active. Layer 2 (DS) is optional but recommended for catching bypass attempts.
+</details>
 
-**Q: DeepSeek 必须配置吗？**
+<details>
+<summary><b>How to reduce false positives?</b></summary>
 
-A: 不必须。不配 DeepSeek 时仅使用本地正则规则进行拦截。
+1. Start with `shadow` mode — observe what gets flagged
+2. Edit `prompt_guard_rules.json` — add negative lookaheads like `keyword(?!safe_context)`
+3. Reload: `curl -X POST .../reload-rules`
+4. Adjust DS confidence threshold (`PROMPT_GUARD_DEEPSEEK_REAL_BLOCK_CONF`)
+</details>
 
-**Q: 误判了怎么办？**
+<details>
+<summary><b>Supported request formats?</b></summary>
 
-A: 先在 Dashboard 查看拦截事件 → 判断是否为误判 → 修改规则后热加载。误判修复反馈欢迎提 Issue。
-
-**Q: 每天大概多少成本？**
-
-A: 取决于流量。Scope 内请求约 1k-10k/天的场景，DS 成本约 1-15 元/天（deepseek-v4-flash）。Dashboard 内置成本面板可精确查看。
-
-**Q: 支持哪些协议？**
-
-A: OpenAI `/v1/chat/completions`、Claude `/v1/messages`、Responses API、Image Generation 等格式。
+OpenAI `/v1/chat/completions`, `/v1/responses`, Claude `/v1/messages`, Image `/v1/images/generations`, and more.
+</details>
 
 ---
 
-## 📄 License
+## 📁 Project Structure
 
-MIT
+```
+prompt-guard/
+├── prompt_guard.py              # Core engine (FastAPI)
+├── prompt_guard_rules.json      # 17 rule categories
+├── ds_prompt.txt                # DeepSeek review prompt
+├── prompt-guard.Dockerfile      # Container build
+├── docker-compose.yml           # One-command deploy
+├── channel_scan_config.json     # Channel control (optional)
+├── .env.example                 # Config template
+└── README.md
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Especially:
+- 🐛 False positive reports → [open an issue](https://github.com/1EchA/prompt-guard/issues)
+- 🌍 New rule patterns (other languages / abuse types)
+- 🎨 Dashboard improvements
+
+---
+
+## ⭐ Show Your Support
+
+If Prompt-Guard helps protect your API, give it a star!
+
+[![Star](https://img.shields.io/github/stars/1EchA/prompt-guard?style=social)](https://github.com/1EchA/prompt-guard)
+
+---
+
+<div align="center">
+
+**[⚖️ MIT License](LICENSE)** · Built with FastAPI · Powered by DeepSeek
+
+</div>
