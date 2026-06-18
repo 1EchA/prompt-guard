@@ -158,6 +158,52 @@ curl http://localhost:8080/health
                           └──────────────────────┘
 ```
 
+### 接入反向代理
+
+Prompt-Guard 监听 `:8080`，需要放在 Nginx/Caddy 后面，由反代把 LLM 请求转发给它，它再转发到上游 API。
+
+**Nginx 示例**（把生成类端点走 prompt-guard，其他直接到上游）：
+
+```nginx
+upstream prompt_guard { server 127.0.0.1:8080; }
+upstream llm_upstream { server 127.0.0.1:3000; }  # 你的 LLM API
+
+server {
+    listen 443 ssl;
+    server_name api.example.com;
+
+    # 受审查的生成端点 → prompt-guard
+    location ~ ^/(v1/chat/completions|chat/completions|v1/responses|responses|v1/messages|messages|v1/images/generations|images/generations)/?$ {
+        proxy_pass http://prompt_guard;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+
+    # 其他请求 → 上游 API
+    location / {
+        proxy_pass http://llm_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+**Caddy 示例**（更简洁）：
+
+```caddy
+api.example.com {
+    @llm path /v1/chat/completions /v1/responses /v1/messages
+    handle @llm {
+        reverse_proxy 127.0.0.1:8080
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
+```
+
 ---
 
 ## ⚙️ 配置详解
@@ -220,12 +266,11 @@ curl http://localhost:8080/health
 
 ### 模式切换
 
-```bash
-# 切换为 block 模式（拦截）
-docker compose exec prompt-guard sh -c "echo 'PROMPT_GUARD_MODE=block'"
-docker compose restart prompt-guard
+修改 `.env` 中的 `PROMPT_GUARD_MODE`，然后重建容器：
 
-# 或直接在 .env 中修改后重启
+```bash
+# 编辑 .env：PROMPT_GUARD_MODE=block
+docker compose up -d prompt-guard
 ```
 
 > 无需修改代码，仅改环境变量即可平滑切换。
@@ -247,7 +292,7 @@ docker compose restart prompt-guard
     "db_host": "mysql",
     "db_port": 3306,
     "db_user": "root",
-    "db_pass": "${MYSQL_PASSWORD}",
+    "db_pass": "your_db_password",
     "db_name": "my_api",
     "token_query": "SELECT DISTINCT c.id FROM channels c, users u, tokens t WHERE t.key = %s AND t.user_id = u.id AND (FIND_IN_SET(u.group, c.group) > 0 OR c.group = '') AND c.status = 1",
     "group_query": "SELECT COALESCE(NULLIF(t.group, ''), u.group) FROM tokens t JOIN users u ON t.user_id = u.id WHERE t.key = %s",

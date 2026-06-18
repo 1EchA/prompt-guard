@@ -352,25 +352,8 @@ async function load() {
   const res = await fetch("/__prompt_guard/events?limit=500", { headers: { "X-Guard-Token": token } });
   if (!res.ok) { $("updated").textContent = "未授权或服务不可用"; return; }
   const data = await res.json();
-  try {
-    const sres = await fetch("/__prompt_guard/stableapi/events?limit=500", { headers: { "X-Guard-Token": token } });
-    if (sres.ok) {
-      const sdata = await sres.json();
-      if (sdata.stats) {
-        const ds = data.stats, ss = sdata.stats;
-        data.stats.checked = (ds.checked||0) + (ss.checked||0);
-        data.stats.allowed = (ds.allowed||0) + (ss.allowed||0);
-        data.stats.blocked = (ds.blocked||0) + (ss.blocked||0);
-        data.stats.shadowed = (ds.shadowed||0) + (ss.shadowed||0);
-        data.stats.errors = (ds.errors||0) + (ss.errors||0);
-        data.stats.sites = Object.assign({}, ds.sites||{}, ss.sites||{});
-        const cats = Object.assign({}, ds.categories||{});
-        for (const [k,v] of Object.entries(ss.categories||{})) cats[k] = (cats[k]||0) + v;
-        data.stats.categories = cats;
-        data.events = (data.events||[]).concat(sdata.events||[]).sort((a,b) => (b.ts||0) - (a.ts||0)).slice(0, 120);
-      }
-    }
-  } catch(e) {}
+  // Multi-site aggregation: if you deploy multiple prompt-guard instances,
+  // fetch their /events endpoints here and merge into `data.stats` / `data.events`.
   lastData = data;
   const s = data.stats || {};
   $("modeBadge").textContent = "模式：" + (s.mode || "-");
@@ -403,7 +386,8 @@ async function loadChannelCfg() {
   if (!token) { $("channelCfgContent").innerHTML = '<span class="muted">请先输入面板 token</span>'; return; }
   try {
     const merged = {};
-    const endpoints = [["local", "/__prompt_guard/channel-config"], ["stableapi", "/__prompt_guard/stableapi/channel-config"]];
+    const endpoints = [["local", "/__prompt_guard/channel-config"]];
+    // Add more endpoints here if aggregating multiple prompt-guard instances.
     for (const [, url] of endpoints) {
       try {
         const res = await fetch(url, { headers: { "X-Guard-Token": token } });
@@ -430,7 +414,7 @@ $("cfgSave").onclick = async () => {
     const raw = inp.value.trim();
     const ids = raw ? raw.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
     const mode = document.querySelector(".cfg-mode[data-site='" + site + "']").value;
-    const url = site === "stableapi" ? "/__prompt_guard/stableapi/channel-config" : "/__prompt_guard/channel-config";
+    const url = "/__prompt_guard/channel-config";
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-Guard-Token": token }, body: JSON.stringify({ site, scan_ids: ids, default_mode: mode }) });
       if (!res.ok) { let err = await res.json().catch(() => ({})); alert(site + " 保存失败: " + (err.error || res.status)); ok = false; }
@@ -626,7 +610,11 @@ def _load_channel_scan_config() -> dict[str, Any]:
 
 
 def _scan_key_for_site(site: str) -> str:
-    return "scan_account_ids" if site == "sub2api" else "scan_channel_ids"
+    # Account-based sites declare scan_account_ids; others use scan_channel_ids.
+    cfg = channel_scan_config.get(site, {})
+    if cfg.get("scan_account_ids"):
+        return "scan_account_ids"
+    return "scan_channel_ids"
 
 
 def _extract_full_token(auth_header: str) -> str:
@@ -1008,6 +996,11 @@ def _load_ds_prompt() -> str:
 
 
 def _load_deepseek_key() -> str:
+    # Prefer env var (most common for containerized deployments)
+    env_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if env_key:
+        return env_key
+    # Fallback: read from file (mounted secret)
     try:
         mtime = os.path.getmtime(DEEPSEEK_KEY_FILE)
     except OSError:

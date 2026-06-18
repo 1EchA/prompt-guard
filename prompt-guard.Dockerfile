@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir fastapi==0.111.0 httpx==0.27.0 uvicorn[standard]=
 
 COPY prompt_guard.py /app/prompt_guard.py
 COPY prompt_guard_rules.json /app/rules.json
+COPY ds_prompt.txt /app/ds_prompt.txt
 
 EXPOSE 8080
 
