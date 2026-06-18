@@ -748,7 +748,7 @@ def _resolve_channels(site: str, token: str) -> list[int]:
 
 
 def _channel_scan_mode(site: str, token: str):
-    cfg = channel_scan_config.get(site)
+    cfg = channel_scan_config.get(site) or channel_scan_config.get("default")
     if not cfg:
         return True, _mode_for_site(site)
 
