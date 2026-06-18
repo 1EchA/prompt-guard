@@ -12,6 +12,8 @@ Real-time prompt inspection · Two-layer review · Zero-downtime hot-reload
 [![Stars](https://img.shields.io/github/stars/1EchA/prompt-guard?style=social)](https://github.com/1EchA/prompt-guard)
 [![Issues](https://img.shields.io/github/issues/1EchA/prompt-guard?style=social)](https://github.com/1EchA/prompt-guard/issues)
 
+🌐 [简体中文](README_zh.md) | **English**
+
 </div>
 
 ---
